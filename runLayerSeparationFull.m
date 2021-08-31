@@ -1,6 +1,9 @@
 % code directory
 clear all;
 addpath(genpath('\\phhydra\data-new\phkinnerets\Lab\CODE\Hydra')); %Path for all code
+
+scriptDir = regexprep(mfilename('fullpath'), '\\\w*$', '');
+fijiExe = "%HOMEDRIVE%%HOMEPATH%\\Fiji.app\\ImageJ-win64.exe --headless -macro";
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
@@ -130,6 +133,11 @@ for i=1:length(mainDirList)
 %           *  min
 %           *  heightDir0
 %           *  heightDir1
+            cd (scriptDir);
+            system(sprintf('%s ./Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s"'),
+                           fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min,
+                           heightDir0, heightDir1);
+            cd (maskDir);
 
         
             
@@ -155,6 +163,11 @@ for i=1:length(mainDirList)
             %  *  max
             %  *  min
             %  *  heightDir0
+            cd (scriptDir);
+            system(sprintf('%s ./Layer_Separation_Frame_Single_Layer.ijm "%s %s %s %f %f %f %f %f %s"'),
+                                       fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min,
+                                       heightDir0);
+            cd (maskDir);
 
             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
             % Run on first layer
