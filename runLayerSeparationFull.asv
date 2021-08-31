@@ -4,10 +4,7 @@ addpath(genpath('\\phhydra\data-new\phkinnerets\Lab\CODE\Hydra')); %Path for all
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
-% xy_scale = 0.99; % um/pixel for 10x lens with 1.6x magnification
-xy_scale = 1.28; % um/pixel for 10x lens with 1x magnification
-% xy_scale = 0.65; % um/pixel for 20x lens with 1x magnification
-% xy_scale = 0.57 % um/pixel for lightsheet
+xy_scale = 1.28; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
 outputZScale = 1; % Default: 1, can change if you want to downsample.
 use_CLAHE = 1;  % Default: 1, set to 0 if don't want to use CLAHE to normalise gradients.
 norm_window = 4; % Default: 4. norm_window*blocksigma is the length scale for normalisation of gradient using CLAHE.
@@ -25,14 +22,23 @@ interval = 30; % Range for distance between layeres for detection in um (so mini
 % The following are calculated from the parameters above and typically don't need to be chagned:
 maxdz = round((3/z_scale)+0.49); % This is the maximum allowed step in z between neighbouring pixels in xy (after rescaling according to above). This was found to be optimal.
 min=(round(min*rescalez/z_scale)); % Convert minimum distance from um to pixels
-max = min+(round(interval*rescalez/z_scale)); % Convert minimum distance from um to pixels
-            
+max = min+(round(interval*rescalez/z_scale)); % Calculate maximum distance and convert from um to pixels.
 
 %% Parameters for surface projections
 offset = [-5:1]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
 CLAHE = 0; % Set to 1 if want to normalise intensity in images using CLAHE. DEFAULT IS 0.
 ZLimits = {[],1}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
 % Leave empty if you don't want to specify any limits.
+
+%% Parameters for creating 2D final projected image
+% These are better to set after you have created the matlab projections and
+% looked at them to choose the relevant planes. If not run in batch mode, code will ask you for your
+% input as to whether to run this section:
+
+planesCortices = [6:8]; % Planes out of matlab projection stack 0 that will be used to create final 2D image (max projection of these planes).
+planesFibres = [7:9]; % Planes out of matlab projection stack 1 that will be used to create final 2D image (max projection of these planes).
+layerCortices = 1; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
+layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
 
 %% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
 
@@ -161,7 +167,21 @@ for i=1:length(mainDirList)
     
 end
 
-
-
-
-
+%% Create 2D image from surface projection stack
+if ~batchStartupOptionUsed
+    check = input('Please press 1 and enter to create final 2D projected images once you have selected the planes you would like to use. Press any other key to exit, change plane nubmers, and then re-run this section.');
+else
+    check = 1;
+end
+if check ~=1 , disp('***Running was stopped. Please select planes and re-run.***'); return, end
+for i=1:length(mainDirList)
+    analysisDir = [AnalysisDirList{i},'\Layer_Separation\'];
+    outputDir = [analysisDir,'\Output'];
+    % Directories for surface projections
+    matlabProjDir0 = [outputDir,'\Matlab_Projections_0\'];
+    matlabProjDir1 = [outputDir,'\Matlab_Projections_1\'];
+    corticesImDir = [AnalysisDirList{i},'\CellsTest'];
+    fibresImDir = [AnalysisDirList{i},'\Orientation_AnalysisTest'];
+    mkdir(corticesImDir); mkdir(fibresImDir);
+    createSinglePlaneProj(matlabProjDir0,matlabProjDir1,layerCortices,layerFibres,planesCortices,planesFibres,corticesImDir,fibresImDir)
+end
