@@ -1,19 +1,20 @@
 % code directory
 clear all;
-addpath(genpath('\\phhydra\data-new\phkinnerets\Lab\CODE\Hydra')); %Path for all code
+addpath(genpath('\\phhydra\phhydraB\Analysis\users\Projects\Noam')); %Path for all code
+warning('off', 'MATLAB:MKDIR:DirectoryExists');% this supresses warning of existing directory
 
 scriptDir = regexprep(mfilename('fullpath'), '\\\w*$', '');
 fijiExe = "%HOMEDRIVE%%HOMEPATH%\\Fiji.app\\ImageJ-win64.exe --headless -macro";
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
-xy_scale = 1.28; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
+xy_scale = 0.65; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
 outputZScale = 1; % Default: 1, can change if you want to downsample.
 use_CLAHE = 1;  % Default: 1, set to 0 if don't want to use CLAHE to normalise gradients.
 norm_window = 4; % Default: 4. norm_window*blocksigma is the length scale for normalisation of gradient using CLAHE.
 % Decreasing can sometimes help prevent jumps between surfaces.
 saveDiffused = 0; % Set to one to save diffused images, and to zero to not save.
-numLayers = 2 ; % Set to 2 for two layers (default), and set to 1 for single layer.
+numLayers = 1 ; % Set to 2 for two layers (default), and set to 1 for single layer.
 
 %% Parameters for layer separation
 rescalexy = 0.5; % Rescaling when running min cost algorithm. 0.5 for xy significantly speeds calculation, and also helps limit the maximum slope of the detected surface (see maxdz).
@@ -30,7 +31,7 @@ max = min+(round(interval*rescalez/z_scale)); % Calculate maximum distance and c
 %% Parameters for surface projections
 offset = [-5:1]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
 CLAHE = 0; % Set to 1 if want to normalise intensity in images using CLAHE. DEFAULT IS 0.
-ZLimits = {[],1}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
+zLimits = {[],1}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
 % Leave empty if you don't want to specify any limits.
 
 %% Parameters for creating 2D final projected image
@@ -45,18 +46,18 @@ layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  L
 
 %% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
 
-topMainDir='\\phhydra\TempData\SD\Yonit\2020\2020_10\2020_10_29\TIFF Files\'; % main folder of original files for layer separation
+topMainDir='Y:\SD2\Yonit\2021_08\2021_08_19\TIFF_Files\'; % main folder of original files for layer separation
 mainDirList= { ... % enter in the following line all the  movie dirs for cost calculation.
     
-'Pos_15\C0\',...
+'Pos_1\C0\',...
 
 };
 for i=1:length(mainDirList),mainInDirList{i}=[topMainDir,mainDirList{i}];end
 
-topAnalysisDir='\\PHHYDRA\phhydraB\Analysis\users\Yonit\Movie_Analysis\Labeled_cells\'; % main folder for layer separation results
+topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yonit\Movie_Analysis\TestSet\'; % main folder for layer separation results
 mainAnalysisDirList= { ... % enter in the following line all the output dirs for cost calculation.
     
-'2020_10_29_pos15\', ...
+'2021_08_19_pos1\', ...
 
 };
 for i=1:length(mainAnalysisDirList),AnalysisDirList{i}=[topAnalysisDir,mainAnalysisDirList{i}];end
@@ -69,18 +70,18 @@ for i=1:length(mainDirList)
     outputDir = [analysisDir,'\Output'];
     
     % Directories for saving diffused and cost images.
-    dirGradient=[analysisDir,'\Gradient'];
-    dirDiffused=[analysisDir,'\Diffused'];
+    dirGradient=[analysisDir,'\Gradient\'];
+    dirDiffused=[analysisDir,'\Diffused\'];
     
     if numLayers == 1
-        dirGradient=[analysisDir,'\Gradient_1Layer'];
+        dirGradient=[analysisDir,'\Gradient_1Layer\'];
     end
     
     % Directories for height maps and surface projections
     heightDir0=[analysisDir,'\Output\Height_Maps_0\'];
-    matlabProjDir0=[AnalysisDirList{j},'\Layer_Separation\Output\Matlab_Projections_0\'];
-    smoothHeightDir0 = [AnalysisDirList{j},'\Layer_Separation\Output\Smooth_Height_Maps_0\'];
-    fvDir0 = [AnalysisDirList{j},'\Layer_Separation\Output\FV_0\'];
+    matlabProjDir0=[AnalysisDirList{i},'\Layer_Separation\Output\Matlab_Projections_0\'];
+    smoothHeightDir0 = [AnalysisDirList{i},'\Layer_Separation\Output\Smooth_Height_Maps_0\'];
+    fvDir0 = [AnalysisDirList{i},'\Layer_Separation\Output\FV_0\'];
     
     
     % make all the needed directories
@@ -100,9 +101,9 @@ for i=1:length(mainDirList)
     
     if numLayers == 2
         heightDir1=[analysisDir,'\Output\Height_Maps_1\'];
-        matlabProjDir1=[AnalysisDirList{j},'\Layer_Separation\Output\Matlab_Projections_1\'];
-        smoothHeightDir1 = [AnalysisDirList{j},'\Layer_Separation\Output\Smooth_Height_Maps_1\'];
-        fvDir1 = [AnalysisDirList{j},'\Layer_Separation\Output\FV_1\'];
+        matlabProjDir1=[AnalysisDirList{i},'\Layer_Separation\Output\Matlab_Projections_1\'];
+        smoothHeightDir1 = [AnalysisDirList{i},'\Layer_Separation\Output\Smooth_Height_Maps_1\'];
+        fvDir1 = [AnalysisDirList{i},'\Layer_Separation\Output\FV_1\'];
         mkdir(heightDir1);
         mkdir(fvDir1);
         mkdir(matlabProjDir1);
@@ -116,6 +117,7 @@ for i=1:length(mainDirList)
     % tpoints = dir('*C0*.tif*');
     
     parfor j = 1:length(tpoints)
+
         name_end = find(tpoints(j).name == '.');
         thisFileImName = [tpoints(j).name(1:(name_end-1))]
         if numLayers == 2
@@ -134,9 +136,9 @@ for i=1:length(mainDirList)
 %           *  heightDir0
 %           *  heightDir1
             cd (scriptDir);
-            system(sprintf('%s ./Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s"'),
-                           fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min,
-                           heightDir0, heightDir1);
+            system(sprintf('%s ./Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s %f"', ...
+                           fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
+                           heightDir0, heightDir1, display));
             cd (maskDir);
 
         
@@ -164,9 +166,9 @@ for i=1:length(mainDirList)
             %  *  min
             %  *  heightDir0
             cd (scriptDir);
-            system(sprintf('%s ./Layer_Separation_Frame_Single_Layer.ijm "%s %s %s %f %f %f %f %f %s"'),
-                                       fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min,
-                                       heightDir0);
+            system(sprintf('%s ./Layer_Separation_Frame_Single_Layer.ijm "%s %s %s %f %f %f %f %f %s %f"', ...
+                                       fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, ...
+                                       max, min, heightDir0, display));
             cd (maskDir);
 
             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:

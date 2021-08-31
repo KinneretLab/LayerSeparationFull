@@ -23,35 +23,33 @@ maxdz = argList[5];
 max = argList[6];
 min = argList[7];
 heightDir0 = argList[8];
+display = argList[9];
 
 
 // print(thisFileImName);
 
 // Find original image and cost image files whether ending is .tiff or .tiff
 if (File.exists(inputDir+thisFileImName+".tiff")){
-	orig_name = thisFileImName+".tiff"
-	else if (File.exists(inputDir+thisFileImName+".tif")){
-		orig_name = thisFileImName+".tif"
-	}
+	orig_name = thisFileImName+".tiff";
+} else if (File.exists(inputDir+thisFileImName+".tif")){
+    orig_name = thisFileImName+".tif";
 }
 
-if (File.exists(dirGradient+"Grad"+thisFileImName+".tiff")){
-	cost_name = "Grad"+thisFileImName+".tiff"
-	else if (File.exists(dirGradient+"Grad"+thisFileImName+".tif")){
-		cost_name = "Grad"+thisFileImName+".tif"
-	}
+if (File.exists(dirGradient+"Grad"+thisFileImName+".tiff")) {
+	cost_name = "Grad"+thisFileImName+".tiff";
+} else if (File.exists(dirGradient+"Grad"+thisFileImName+".tif")) {
+    cost_name = "Grad"+thisFileImName+".tif";
 }
 
 // Perform layer separation if original and cost files exist. This will prevent crashing if some frames are missing.
 
-if (File.exists(inputDir+orig_name)){
-
-	if (File.exists(dirGradient+cost_name)){
+if (File.exists(inputDir+orig_name)) {
+	if (File.exists(dirGradient+cost_name)) {
 
 		open(inputDir+orig_name);
 		open(dirGradient+cost_name);
 
-		run("Min cost Z Surface", "input="+orig_name+" cost="+cost_name+" rescale_x,y=&rescalexy rescale_z=&rescalez max_delta_z=&maxdz display_volume(s) volume=&display max_distance=&max min_distance=&min");
+		run("Min cost Z Surface", "input="+orig_name+" cost="+cost_name+" rescale_x,y=" + rescalexy + " rescale_z=" + rescalez + " max_delta_z=" + maxdz + " display_volume(s) volume=" + display + " max_distance=" + max + " min_distance=" + min);
 
 		// Uncomment the following section if you would like to save images of detected surfaces directly.
 		/*
@@ -63,13 +61,10 @@ if (File.exists(inputDir+orig_name)){
 		saveAs("Tiff", heightDir0+"\\HM"+orig_name);
 		run("Close All");
 
-		else
-		{
-			print("Cost image not found");
-		}
-	}
-	else
-	{
-	print("Original image not found");
-	}
+
+	} else {
+        print("Cost image not found");
+    }
+} else {
+    print("Original image not found");
 }
