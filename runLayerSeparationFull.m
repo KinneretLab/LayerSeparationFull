@@ -1,6 +1,6 @@
 % code directory
 clear all;
-addpath(genpath('\\phhydra\phhydraB\Analysis\users\Projects\Noam')); %Path for all code
+addpath(genpath('Z:\Analysis\users\Yonit\MatlabCodes\GroupCodes\July2021')); %Path for all code
 warning('off', 'MATLAB:MKDIR:DirectoryExists');% this supresses warning of existing directory
 
 scriptDir = regexprep(mfilename('fullpath'), '\\\w*$', '');
@@ -14,7 +14,7 @@ use_CLAHE = 1;  % Default: 1, set to 0 if don't want to use CLAHE to normalise g
 norm_window = 4; % Default: 4. norm_window*blocksigma is the length scale for normalisation of gradient using CLAHE.
 % Decreasing can sometimes help prevent jumps between surfaces.
 saveDiffused = 0; % Set to one to save diffused images, and to zero to not save.
-numLayers = 1 ; % Set to 2 for two layers (default), and set to 1 for single layer.
+numLayers = 2 ; % Set to 2 for two layers (default), and set to 1 for single layer.
 
 %% Parameters for layer separation
 rescalexy = 0.5; % Rescaling when running min cost algorithm. 0.5 for xy significantly speeds calculation, and also helps limit the maximum slope of the detected surface (see maxdz).
@@ -31,7 +31,7 @@ max = min+(round(interval*rescalez/z_scale)); % Calculate maximum distance and c
 %% Parameters for surface projections
 offset = [-5:1]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
 CLAHE = 0; % Set to 1 if want to normalise intensity in images using CLAHE. DEFAULT IS 0.
-zLimits = {[],1}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
+zLimits = {[],[]}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
 % Leave empty if you don't want to specify any limits.
 
 %% Parameters for creating 2D final projected image
@@ -46,7 +46,7 @@ layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  L
 
 %% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
 
-topMainDir='Y:\SD2\Yonit\2021_08\2021_08_19\TIFF_Files\'; % main folder of original files for layer separation
+topMainDir='\\phhydra\TempData\SD2\Yonit\2021_08\2021_08_19\TIFF_Files\'; % main folder of original files for layer separation
 mainDirList= { ... % enter in the following line all the  movie dirs for cost calculation.
     
 'Pos_1\C0\',...
@@ -116,7 +116,7 @@ for i=1:length(mainDirList)
     tpoints = dir('*tif*');
     % tpoints = dir('*C0*.tif*');
     
-    parfor j = 1:length(tpoints)
+    for j = 1:length(tpoints)
 
         name_end = find(tpoints(j).name == '.');
         thisFileImName = [tpoints(j).name(1:(name_end-1))]
