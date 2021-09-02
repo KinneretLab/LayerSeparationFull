@@ -8,7 +8,7 @@ fijiExe = "%HOMEDRIVE%%HOMEPATH%\\Fiji.app\\ImageJ-win64.exe --headless -macro";
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
-xy_scale = 0.65; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
+xy_scale = 0.52; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
 outputZScale = 1; % Default: 1, can change if you want to downsample.
 use_CLAHE = 1;  % Default: 1, set to 0 if don't want to use CLAHE to normalise gradients.
 norm_window = 4; % Default: 4. norm_window*blocksigma is the length scale for normalisation of gradient using CLAHE.
@@ -29,7 +29,7 @@ min=(round(min*rescalez/z_scale)); % Convert minimum distance from um to pixels
 max = min+(round(interval*rescalez/z_scale)); % Calculate maximum distance and convert from um to pixels.
 
 %% Parameters for surface projections
-offset = [-5:1]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
+offset = [-7:3]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
 CLAHE = 0; % Set to 1 if want to normalise intensity in images using CLAHE. DEFAULT IS 0.
 zLimits = {[],[]}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
 % Leave empty if you don't want to specify any limits.
@@ -116,7 +116,7 @@ for i=1:length(mainDirList)
     tpoints = dir('*tif*');
     % tpoints = dir('*C0*.tif*');
     
-    for j = 1:length(tpoints)
+    parfor j = 1:length(tpoints)
 
         name_end = find(tpoints(j).name == '.');
         thisFileImName = [tpoints(j).name(1:(name_end-1))]
