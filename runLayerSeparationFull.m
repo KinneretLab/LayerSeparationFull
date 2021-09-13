@@ -5,6 +5,11 @@ warning('off', 'MATLAB:MKDIR:DirectoryExists');% this supresses warning of exist
 
 scriptDir = regexprep(mfilename('fullpath'), '\\\w*$', '');
 fijiExe = "%HOMEDRIVE%%HOMEPATH%\\Fiji.app\\ImageJ-win64.exe --headless -macro";
+%% Parallel processing
+% Set the number of parallel workers for performing tasks. The default is
+% the number of cores you have on your computer, but if you get an 'out of
+% memory' error, try setting to fewer.
+numPar = 6;
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
@@ -39,7 +44,7 @@ zLimits = {[],[]}; % If there is a disturbing feature in the stack that you woul
 % looked at them to choose the relevant planes. If not run in batch mode, code will ask you for your
 % input as to whether to run this section:
 
-planesCortices = [6:8]; % Planes out of matlab projection stack 0 that will be used to create final 2D image (max projection of these planes).
+planesCortices = [7:10]; % Planes out of matlab projection stack 0 that will be used to create final 2D image (max projection of these planes).
 planesFibres = [7:9]; % Planes out of matlab projection stack 1 that will be used to create final 2D image (max projection of these planes).
 layerCortices = 1; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
 layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
@@ -115,7 +120,7 @@ for i=1:length(mainDirList)
     cd (maskDir);
     tpoints = dir('*tif*');
     % tpoints = dir('*C0*.tif*');
-    
+    parpool('local', numPar);
     parfor j = 1:length(tpoints)
 
         name_end = find(tpoints(j).name == '.');
@@ -135,14 +140,10 @@ for i=1:length(mainDirList)
 %           *  min
 %           *  heightDir0
 %           *  heightDir1
-            cd (scriptDir);
-            system(sprintf('%s ./Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s %f"', ...
-                           fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
+            system(sprintf('%s %s/Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s %f"', ...
+                           fijiExe, scriptDir, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
                            heightDir0, heightDir1, display));
-            cd (maskDir);
 
-        
-            
             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
             % Run on first layer
             smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale);
@@ -165,11 +166,9 @@ for i=1:length(mainDirList)
             %  *  max
             %  *  min
             %  *  heightDir0
-            cd (scriptDir);
-            system(sprintf('%s ./Layer_Separation_Frame_Single_Layer.ijm "%s %s %s %f %f %f %f %f %s %f"', ...
-                                       fijiExe, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, ...
+            system(sprintf('%s %s/Layer_Separation_Frame_Single_Layer.ijm "%s %s %s %f %f %f %f %f %s %f"', ...
+                                       fijiExe, scriptDir, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, ...
                                        max, min, heightDir0, display));
-            cd (maskDir);
 
             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
             % Run on first layer
@@ -195,8 +194,8 @@ for i=1:length(mainDirList)
     % Directories for surface projections
     matlabProjDir0 = [outputDir,'\Matlab_Projections_0\'];
     matlabProjDir1 = [outputDir,'\Matlab_Projections_1\'];
-    corticesImDir = [AnalysisDirList{i},'\CellsTest'];
-    fibresImDir = [AnalysisDirList{i},'\Orientation_AnalysisTest'];
+    corticesImDir = [AnalysisDirList{i},'\Cells'];
+    fibresImDir = [AnalysisDirList{i},'\Orientation_Analysis'];
     mkdir(corticesImDir); mkdir(fibresImDir);
     createSinglePlaneProj(matlabProjDir0,matlabProjDir1,layerCortices,layerFibres,planesCortices,planesFibres,corticesImDir,fibresImDir)
 end
