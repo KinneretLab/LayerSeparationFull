@@ -18,7 +18,7 @@ if ~isempty(layerFibres)
           newStack = projStack(:,:,planesFibres);
           fibreIm = max(newStack,[],3);
           cd([fibresImDir,'\Raw Images']);
-          imwrite(fibreIm,thisFileImName,'tiff');
+          imwrite(fibreIm,thisFileImName + ".tiff");
 
     end
 end
@@ -40,7 +40,7 @@ if ~isempty(layerCortices)
           newStack = projStack(:,:,planesCortices);
           corticesIm = max(newStack,[],3);
           cd([corticesImDir,'\Raw Cortices']);
-          imwrite(corticesIm,thisFileImName,'tiff');
+          imwrite(corticesIm,thisFileImName + ".tiff");
           
     end
 end
