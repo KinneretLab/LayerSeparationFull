@@ -3,13 +3,34 @@ clear all;
 addpath(genpath('Z:\Analysis\users\Yonit\MatlabCodes\GroupCodes\July2021')); %Path for all code
 warning('off', 'MATLAB:MKDIR:DirectoryExists');% this supresses warning of existing directory
 
+%% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
+
+topMainDir='\\phhydra\TempData\SD2\Yonit\2021_08\2021_08_19\TIFF_Files\'; % main folder of original files for layer separation
+mainDirList= { ... % enter in the following line all the  movie dirs for cost calculation.
+    
+'Pos_1\C0\',...
+
+};
+for i=1:length(mainDirList),mainInDirList{i}=[topMainDir,mainDirList{i}];end
+
+topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yonit\Movie_Analysis\TestSet\'; % main folder for layer separation results
+mainAnalysisDirList= { ... % enter in the following line all the output dirs for cost calculation.
+    
+'2021_08_19_pos1\', ...
+
+};
+for i=1:length(mainAnalysisDirList),AnalysisDirList{i}=[topAnalysisDir,mainAnalysisDirList{i}];end
+
+%% define path for dir (for Java codes)
 scriptDir = regexprep(mfilename('fullpath'), '\\\w*$', '');
 fijiExe = "%HOMEDRIVE%%HOMEPATH%\\Fiji.app\\ImageJ-win64.exe --headless -macro";
+
 %% Parallel processing
 % Set the number of parallel workers for performing tasks. The default is
 % the number of cores you have on your computer, but if you get an 'out of
 % memory' error, try setting to fewer.
 numPar = 6;
+
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
@@ -49,23 +70,6 @@ planesFibres = [7:9]; % Planes out of matlab projection stack 1 that will be use
 layerCortices = 1; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
 layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
 
-%% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
-
-topMainDir='\\phhydra\TempData\SD2\Yonit\2021_08\2021_08_19\TIFF_Files\'; % main folder of original files for layer separation
-mainDirList= { ... % enter in the following line all the  movie dirs for cost calculation.
-    
-'Pos_1\C0\',...
-
-};
-for i=1:length(mainDirList),mainInDirList{i}=[topMainDir,mainDirList{i}];end
-
-topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yonit\Movie_Analysis\TestSet\'; % main folder for layer separation results
-mainAnalysisDirList= { ... % enter in the following line all the output dirs for cost calculation.
-    
-'2021_08_19_pos1\', ...
-
-};
-for i=1:length(mainAnalysisDirList),AnalysisDirList{i}=[topAnalysisDir,mainAnalysisDirList{i}];end
 
 %% Run over all folders in mainDirList and create cost images, which are saved in matching subfolders in topAnalysisDir.
 for i=1:length(mainDirList)
@@ -126,7 +130,10 @@ for i=1:length(mainDirList)
         name_end = find(tpoints(j).name == '.');
         thisFileImName = [tpoints(j).name(1:(name_end-1))]
         if numLayers == 2
+            % Preprocessing before layer separation - matlab code for making the input to the layer seapartion ("Layer separation before")
             CreateCost_with_CLAHE(thisFileImName, inputDir, analysisDir,maskDir, z_scale,xy_scale,outputZScale, use_CLAHE, norm_window, saveDiffused);
+            
+            % Main layer seapartion function - using ImageJ ("Layer separation - ImageJ")
             % Here run the macro "Layer_Separation_Frame" with the
             % following input parameters:
             
@@ -144,6 +151,8 @@ for i=1:length(mainDirList)
                            fijiExe, scriptDir, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
                            heightDir0, heightDir1, display));
 
+            % postprocessing after layer separation - matlab code for making projected images at given z from height maps
+            % ("Layer separation after" - first automated step that creates many planes)
             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
             % Run on first layer
             smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale);
@@ -182,6 +191,8 @@ for i=1:length(mainDirList)
 end
 
 %% Create 2D image from surface projection stack
+% postprocessing after layer separation - matlab code for making a single projected plane for apical ("cells") and basal ("fibers") surface (requires manual check to see what are the best planes to project)
+ % ("Layer separation after" - second step that generates final projected images)
 if ~batchStartupOptionUsed
     check = input('Please press 1 and enter to create final 2D projected images once you have selected the planes you would like to use. Press any other key to exit, change plane nubmers, and then re-run this section.');
 else
