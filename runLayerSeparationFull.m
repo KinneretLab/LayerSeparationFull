@@ -4,23 +4,30 @@ addpath(genpath('Z:\Analysis\users\Yonit\MatlabCodes\GroupCodes\July2021')); %Pa
 warning('off', 'MATLAB:MKDIR:DirectoryExists');% this supresses warning of existing directory
 
 %% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
-
-topMainDir='\\phhydra\TempData\SD2\Yonit\2021_08\2021_08_19\TIFF_Files\'; % main folder of original files for layer separation
+topMainDir='\\phhydra\phhydraB\SD2\2022\Yonit\2022_11\2022_11_28\TIFF_Files\'; % main folder of original files for layer separation
 mainDirList= { ... % enter in the following line all the  movie dirs for cost calculation.
-    
-'Pos_1\C0\',...
+ 
+ 'Pos_6\C0\',...
+ 'Pos_13\C0\',...
+%'Pos_16\C0\',...
+%'Pos_20\C0\',...
+
+
 
 };
 for i=1:length(mainDirList),mainInDirList{i}=[topMainDir,mainDirList{i}];end
 
-topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yonit\Movie_Analysis\TestSet\'; % main folder for layer separation results
+topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yonit\Movie_Analysis\Labeled_cells\'; % main folder for layer separation results
 mainAnalysisDirList= { ... % enter in the following line all the output dirs for cost calculation.
-    
-'2021_08_19_pos1\', ...
+% 
+ '\2022_11_28_pos6\', ...
+ '\2022_11_28_pos13\', ...
+%'\2022_11_28_pos16\', ...
+%'\2022_11_28_pos20\', ...
+
 
 };
 for i=1:length(mainAnalysisDirList),AnalysisDirList{i}=[topAnalysisDir,mainAnalysisDirList{i}];end
-
 %% define path for dir (for Java codes)
 scriptDir = regexprep(mfilename('fullpath'), '\\\w*$', '');
 fijiExe = "%HOMEDRIVE%%HOMEPATH%\\Fiji.app\\ImageJ-win64.exe --headless -macro";
@@ -29,7 +36,7 @@ fijiExe = "%HOMEDRIVE%%HOMEPATH%\\Fiji.app\\ImageJ-win64.exe --headless -macro";
 % Set the number of parallel workers for performing tasks. The default is
 % the number of cores you have on your computer, but if you get an 'out of
 % memory' error, try setting to fewer.
-numPar = 6;
+numPar = 1;
 
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
@@ -54,6 +61,9 @@ maxdz = round((3/z_scale)+0.49); % This is the maximum allowed step in z between
 min=(round(min*rescalez/z_scale)); % Convert minimum distance from um to pixels
 max = min+(round(interval*rescalez/z_scale)); % Calculate maximum distance and convert from um to pixels.
 
+% Create extrapolated surface height map to improve edges of heightmaps (set to 0 or 1)
+extrapolate = 1; 
+
 %% Parameters for surface projections
 offset = [-7:3]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
 CLAHE = 0; % Set to 1 if want to normalise intensity in images using CLAHE. DEFAULT IS 0.
@@ -65,8 +75,8 @@ zLimits = {[],[]}; % If there is a disturbing feature in the stack that you woul
 % looked at them to choose the relevant planes. If not run in batch mode, code will ask you for your
 % input as to whether to run this section:
 
-planesCortices = [7:10]; % Planes out of matlab projection stack 0 that will be used to create final 2D image (max projection of these planes).
-planesFibres = [7:9]; % Planes out of matlab projection stack 1 that will be used to create final 2D image (max projection of these planes).
+planesCortices = [6:9]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
+planesFibres = [6:9]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
 layerCortices = 1; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
 layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
 
@@ -124,43 +134,44 @@ for i=1:length(mainDirList)
     cd (maskDir);
     tpoints = dir('*tif*');
     % tpoints = dir('*C0*.tif*');
-    parpool('local', numPar);
-    parfor j = 1:length(tpoints)
+   % parpool('local', numPar);
+    for j = 1:length(tpoints)
 
         name_end = find(tpoints(j).name == '.');
         thisFileImName = [tpoints(j).name(1:(name_end-1))]
         if numLayers == 2
             % Preprocessing before layer separation - matlab code for making the input to the layer seapartion ("Layer separation before")
-            CreateCost_with_CLAHE(thisFileImName, inputDir, analysisDir,maskDir, z_scale,xy_scale,outputZScale, use_CLAHE, norm_window, saveDiffused);
-            
+    %       CreateCost_with_CLAHE(thisFileImName, inputDir, analysisDir,maskDir, z_scale,xy_scale,outputZScale, use_CLAHE, norm_window, saveDiffused);
+
             % Main layer seapartion function - using ImageJ ("Layer separation - ImageJ")
             % Here run the macro "Layer_Separation_Frame" with the
             % following input parameters:
-            
-%           *  thisFileImName - name of file without .tiff ending.
-%           *  inputDir - input directory of original image files
-%           *  dirGradient - input directory of cost (gradient) files
-%           *  rescalexy
-%           *  rescalez
-%           *  maxdz
-%           *  max
-%           *  min
-%           *  heightDir0
-%           *  heightDir1
-            system(sprintf('%s %s/Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s %f"', ...
-                           fijiExe, scriptDir, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
-                           heightDir0, heightDir1, display));
+
+            %           *  thisFileImName - name of file without .tiff ending.
+            %           *  inputDir - input directory of original image files
+            %           *  dirGradient - input directory of cost (gradient) files
+            %           *  rescalexy
+            %           *  rescalez
+            %           *  maxdz
+            %           *  max
+            %           *  min
+            %           *  heightDir0
+            %           *  heightDir1
+
+%            system(sprintf('%s %s/Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s %f"', ...
+%                                             fijiExe, scriptDir, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
+%                                         heightDir0, heightDir1, display));
 
             % postprocessing after layer separation - matlab code for making projected images at given z from height maps
             % ("Layer separation after" - first automated step that creates many planes)
             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
             % Run on first layer
-            smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale);
-            makeFrameProjection_smoothedHM(thisFileImName, inputDir, matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
+            smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale,extrapolate,0);
+            makeFrameProjection_smoothedHM(thisFileImName, inputDir, maskDir,matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
             % Run on second layer
-            smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir1,smoothHeightDir1,fvDir1, xy_scale, z_scale);
-            makeFrameProjection_smoothedHM(thisFileImName, inputDir, matlabProjDir1,xy_scale, offset,smoothHM,CLAHE, zLimits );
-            
+            smoothHM =  smoothHeightMap(thisFileImName, maskDir, heightDir1,smoothHeightDir1,fvDir1, xy_scale, z_scale,extrapolate,1);
+            makeFrameProjection_smoothedHM(thisFileImName, inputDir,maskDir, matlabProjDir1,xy_scale, offset,smoothHM,CLAHE, zLimits );
+
         elseif numLayers == 1
             CreateCost_Single_Layer(thisFileImName, inputDir, analysisDir,maskDir, z_scale,xy_scale,outputZScale, use_CLAHE, norm_window, saveDiffused);
            % Here run the macro "Layer_Separation_Frame_Single_Layer" with the
@@ -181,8 +192,8 @@ for i=1:length(mainDirList)
 
             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
             % Run on first layer
-            smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale);
-            makeFrameProjection_smoothedHM(thisFileImName, inputDir, matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
+            smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale,extrapolate,0);
+            makeFrameProjection_smoothedHM(thisFileImName,inputDir, maskDir, matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
             
         end
         

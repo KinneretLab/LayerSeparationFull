@@ -4,33 +4,33 @@ function [smoothHM] = smoothHeightMap(thisFileImName, maskDir, heightDir, smooth
 % isosurface with I=0.5.
 %% Load height map
 try % load the height maps
-    cd (heightDir); HeightMapOrig =importdata(['HM',thisFileImName,'.tiff']);
+    cd (heightDir); HeightMapOrig =importdata(['HM',thisFileImName,'.tiff']); 
 catch
     try
-        cd (heightDir); HeightMapOrig =importdata(['HM',thisFileImName,'.tif']);
+        cd (heightDir); HeightMapOrig =importdata(['HM',thisFileImName,'.tif']); 
     catch
         HeightMapOrig=[] ;disp (['no height map found ',thisFileImName]); % if no image is found
-    end
-
+    end  
+   
 end
 
 try % load the corresponding masks
-    cd (maskDir); thisMask =importdata([thisFileImName,'.tiff']);
+    cd (maskDir); thisMask =importdata([thisFileImName,'.tiff']); 
 catch
     try
-        cd (maskDir); thisMask =importdata([thisFileImName,'.tif']);
+        cd (maskDir); thisMask =importdata([thisFileImName,'.tif']); 
     catch
         thisMask =[] ;disp (['no mask found ',thisFileImName]); % if no image is found
-    end
+    end  
 end
 origSize = size(HeightMapOrig);
 %% Downsample HeightMap and mask to have similar xy and z resolution
 xyScale= ceil(calibrationZ/calibrationXY);
 if xyScale>1,
     HeightMap=HeightMapOrig(1:xyScale:end,1:xyScale:end);
-    thisMask=thisMask(1:xyScale:end,1:xyScale:end);
+    resizedMask=thisMask(1:xyScale:end,1:xyScale:end);
 
-else HeightMap = HeightMapOrig;
+else HeightMap = HeightMapOrig; 
 end
 % HeightMap = HeightMapOrig; mask=maskOrig;
 
@@ -43,34 +43,53 @@ minZ=1; % when minZ = 1 the height will retain the original values
 maxZ = max(max(HeightMap)); % define the height of the 3D mask
 xSize=size (HeightMap,1); ySize=size (HeightMap,2); zSize=round(maxZ - minZ +1);
 [X,Y,Z] = meshgrid(1:ySize,1:xSize,1:zSize); X=X*xyScale*calibrationXY;Y=Y*xyScale*calibrationXY;Z=double(Z)*calibrationZ; % this gives the grid in real units
-repHeightMap = repmat(HeightMap,1,1,zSize)*calibrationZ; % generate 3D matriz which has z=z(x,y) for all z
+repHeightMap = repmat(HeightMap,1,1,zSize)*calibrationZ; % generate 3D matrix which has z=z(x,y) for all z
 Mask3D = single(Z > repHeightMap); % makes a matrix with 1 when z>z(x,y) and 0 below
+
+% Pad Mask3D to prevent holes in surface mesh from isosurface
+Mask3D = cat(3,zeros(size(HeightMap)),Mask3D,ones(size(HeightMap)));
+X = cat(3,X(:,:,1),X,X(:,:,1));
+Y = cat(3,Y(:,:,1),Y,Y(:,:,1));
+Z = cat(3,zeros(size(Z,1:2)),Z,ones(size(Z,1:2))*(zSize+1)*calibrationZ);
 
 % 3D Gaussian filtering with a sigma of 1 voxel
 SmoothMask3D = imgaussfilt3(Mask3D,sigma);
+SmoothMask3D_fv = SmoothMask3D;
+
 % Remove triangles and vertices outside the mask
-% [maskedX,maskedY] = find(thismask==0);
-% SmoothMask3D(maskedX,maskedY,:) = NaN;
+SE = strel("disk",xyScale);
+resizedMask = imdilate(resizedMask,SE);
+
+% Prepare mask for surface detection with NaN values outside mask so
+% triangulated surface is only inside mask region:
+ SmoothMask3D_fv(repmat(resizedMask,1,1,size(SmoothMask3D,3))==0) = NaN;
 
 %%
-try [f,v] = isosurface(X,Y,Z,SmoothMask3D,0.5); % find the isosurface with value =0.5
+try [f,v] = isosurface(X,Y,Z,SmoothMask3D_fv,0.5); % find the isosurface with value =0.5
 catch f = []; v=[];
 end
 
+try [~,v2] = isosurface(X,Y,Z,SmoothMask3D,0.5); % find the isosurface with value =0.5
+catch v2=[];
+end
+
 %% Rescale coordinates x,y,z to pixels, and interpolate surface z(x,y) to original x,y grid
-if length(v) == 0
-    v = zeros(1,3);
+if length(v2) == 0
+    v2 = zeros(1,3);
     smoothHM = ones(origSize(2),origSize(1));
 else
-    rescaledV = [1/calibrationXY, 1/calibrationXY,1/calibrationZ].*v ;
+    rescaledV = [1/calibrationXY, 1/calibrationXY,1/calibrationZ].*v2 ;
     [newX,newY] = meshgrid(1:origSize(2),1:origSize(1));
     interp = scatteredInterpolant(rescaledV(:,1),rescaledV(:,2),rescaledV(:,3));
     smoothHM = interp(newX,newY);
+    SE = strel("disk",round(20/calibrationXY)); % Dilate mask so that we are less sensitive to slight inaccuracies with the mask by 20 um.
+    thisMask = imdilate(thisMask,SE);
+    smoothHM(thisMask==0) = 1;
 end
 
 %% Save surface triangles and vertices for distance calculations
 TRIV = f;
-VERT = [1/calibrationXY, 1/calibrationXY,1].*v ;
+VERT = [1/calibrationXY, 1/calibrationXY,1/calibrationXY].*v ;
 m = size(TRIV,1);
 n = size(VERT,1);
 
@@ -81,3 +100,4 @@ cd(fvDir); save(thisFileImName,'TRIV','VERT','m','n');
  cd(smoothHeightDir); save(thisFileImName,'smoothHM'); % save adjusted image
 
 end
+
