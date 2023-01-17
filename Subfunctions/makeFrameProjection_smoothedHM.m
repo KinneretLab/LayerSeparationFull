@@ -1,4 +1,4 @@
-function makeFrameProjection_smoothedHM(thisFileImName, inputDir, outputDir,calibrationXY, offset, smoothHM, CLAHE,zLimit)
+function makeFrameProjection_smoothedHM(thisFileImName, inputDir, maskDir, outputDir,calibrationXY, offset, smoothHM, CLAHE,zLimit)
 % makeFrameProjection(thisFileImName, inputDir, heightDir, outputDir, scalingxy, offset, nProject, typeProject );
 %
 % this function takes a 3D image matrix data from file thisFileImName in inputDir [N x M x Planes] and a
@@ -27,6 +27,18 @@ image3D = read3Dstack ([thisFileImName,'.tiff'],inputDir);
 catch
     image3D = read3Dstack ([thisFileImName,'.tif'],inputDir);
 end
+
+try % load the corresponding masks
+    cd (maskDir); thisMask =importdata([thisFileImName,'.tiff']); 
+catch
+    try
+        cd (maskDir); thisMask =importdata([thisFileImName,'.tif']); 
+    catch
+        thisMask =[] ;disp (['no mask found ',thisFileImName]); % if no image is found
+    end  
+end
+
+
 %%
 heightZ = smoothHM;
 maxZ=size (image3D,3);
@@ -57,6 +69,9 @@ for j = 1:length(offset),
     thisSurfaceProj = sum(weighed3dIm,3);
     surfaceProj(:,:,j)=uint16(thisSurfaceProj);     % this is the projected image with offset j
 end
+
+surfaceProj(repmat(thisMask,1,1,size(surfaceProj,3))==0) = NaN;
+
 %% normalize image intensity using "adapthisteq" (CLAHE filter)
 if CLAHE == 1
     % adapthisteq parameters for CLAHE analysis of incoming image

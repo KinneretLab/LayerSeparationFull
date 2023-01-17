@@ -66,7 +66,7 @@ end
 totHM = totHM + (1/length(Ds))*hm; % Average over different d_theta jumps
 end
 
-% Smoothen external part
+% Smooth external part
 if erd > 0
 msk = double(msk./ max(msk(:)));
 rel = imerode(msk,strel('disk',erd));

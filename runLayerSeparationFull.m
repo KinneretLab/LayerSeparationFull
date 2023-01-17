@@ -1,30 +1,23 @@
 % code directory
 clear all;
-addpath(genpath('Z:\Analysis\users\Yonit\MatlabCodes\GroupCodes\July2021')); %Path for all code
+addpath(genpath('Z:\Analysis\users\Yonit\MatlabCodes\GroupCodes\')); %Path for all code
 warning('off', 'MATLAB:MKDIR:DirectoryExists');% this supresses warning of existing directory
 
 %% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
-topMainDir='\\phhydra\phhydraB\SD2\2022\Yonit\2022_11\2022_11_28\TIFF_Files\'; % main folder of original files for layer separation
+
+%% Define mainDirList
+topMainDir='\\phhydra\data-new\phhydra\spinning-disk\DATA\Yonit\2019\2019_04\2019_04_01\TIFF_Files\'; % main folder of original files for layer separation
 mainDirList= { ... % enter in the following line all the  movie dirs for cost calculation.
  
- 'Pos_6\C0\',...
- 'Pos_13\C0\',...
-%'Pos_16\C0\',...
-%'Pos_20\C0\',...
-
-
+'Pos_2\C0\',...
 
 };
 for i=1:length(mainDirList),mainInDirList{i}=[topMainDir,mainDirList{i}];end
 
 topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yonit\Movie_Analysis\Labeled_cells\'; % main folder for layer separation results
 mainAnalysisDirList= { ... % enter in the following line all the output dirs for cost calculation.
-% 
- '\2022_11_28_pos6\', ...
- '\2022_11_28_pos13\', ...
-%'\2022_11_28_pos16\', ...
-%'\2022_11_28_pos20\', ...
 
+'\2019_04_01_pos2\', ...
 
 };
 for i=1:length(mainAnalysisDirList),AnalysisDirList{i}=[topAnalysisDir,mainAnalysisDirList{i}];end
@@ -41,7 +34,7 @@ numPar = 1;
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
-xy_scale = 0.52; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
+xy_scale = 1.28; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
 outputZScale = 1; % Default: 1, can change if you want to downsample.
 use_CLAHE = 1;  % Default: 1, set to 0 if don't want to use CLAHE to normalise gradients.
 norm_window = 4; % Default: 4. norm_window*blocksigma is the length scale for normalisation of gradient using CLAHE.
@@ -76,7 +69,7 @@ zLimits = {[],[]}; % If there is a disturbing feature in the stack that you woul
 % input as to whether to run this section:
 
 planesCortices = [6:9]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
-planesFibres = [6:9]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
+planesFibres = [5:8]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
 layerCortices = 1; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
 layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
 
@@ -141,7 +134,7 @@ for i=1:length(mainDirList)
         thisFileImName = [tpoints(j).name(1:(name_end-1))]
         if numLayers == 2
             % Preprocessing before layer separation - matlab code for making the input to the layer seapartion ("Layer separation before")
-    %       CreateCost_with_CLAHE(thisFileImName, inputDir, analysisDir,maskDir, z_scale,xy_scale,outputZScale, use_CLAHE, norm_window, saveDiffused);
+           CreateCost_with_CLAHE(thisFileImName, inputDir, analysisDir,maskDir, z_scale,xy_scale,outputZScale, use_CLAHE, norm_window, saveDiffused);
 
             % Main layer seapartion function - using ImageJ ("Layer separation - ImageJ")
             % Here run the macro "Layer_Separation_Frame" with the
@@ -157,10 +150,10 @@ for i=1:length(mainDirList)
             %           *  min
             %           *  heightDir0
             %           *  heightDir1
-
-%            system(sprintf('%s %s/Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s %f"', ...
-%                                             fijiExe, scriptDir, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
-%                                         heightDir0, heightDir1, display));
+% 
+           system(sprintf('%s %s/Layer_Separation_Frame.ijm "%s %s %s %f %f %f %f %f %s %s %f"', ...
+                                            fijiExe, scriptDir, thisFileImName, inputDir, dirGradient, rescalexy, rescalez, maxdz, max, min, ...
+                                        heightDir0, heightDir1, display));
 
             % postprocessing after layer separation - matlab code for making projected images at given z from height maps
             % ("Layer separation after" - first automated step that creates many planes)

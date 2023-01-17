@@ -7,7 +7,9 @@ if ~isempty(layerFibres)
   cd (fibreProjDir);
   tpoints = dir('*tif*');
   mkdir([fibresImDir,'\Raw Images']);
-    parfor j = 1:length(tpoints)      
+    % parfor j = 1:length(tpoints)      
+    for j = 1:length(tpoints)      
+
           name_end = find(tpoints(j).name == '.');
           thisFileImName = [tpoints(j).name(1:(name_end-1))];
           try
@@ -29,7 +31,9 @@ if ~isempty(layerCortices)
   tpoints = dir('*tif*');
   mkdir([corticesImDir,'\Raw Cortices']);
 
-    parfor j = 1:length(tpoints)      
+    % parfor j = 1:length(tpoints)      
+    for j = 1:length(tpoints)      
+
           name_end = find(tpoints(j).name == '.');
           thisFileImName = [tpoints(j).name(1:(name_end-1))];
           try
