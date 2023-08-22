@@ -1,4 +1,4 @@
-function [smoothHM] = smoothHeightMap(thisFileImName, maskDir, heightDir, smoothHeightDir,fvDir, calibrationXY, calibrationZ,extrapolate,layerNum)
+ function [smoothHM] = smoothHeightMap(thisFileImName, maskDir, heightDir, smoothHeightDir,fvDir, calibrationXY, calibrationZ,extrapolate,layerNum)
 % Take height maps given by surface detection algorithm for layer
 % separation, and smooth by binarising, blurring using gaussian kernel and selecting
 % isosurface with I=0.5.
