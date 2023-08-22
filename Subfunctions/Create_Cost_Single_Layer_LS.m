@@ -1,4 +1,4 @@
-function CreateCost_Single_Layer(thisFileImName, inputDir, analysisDir,maskDir, z_scale, xy_scale, outputZScale,use_CLAHE, norm_window,saveDiffused)
+function Create_Cost_Single_Layer_LS(thisFileImName, inputDir, analysisDir, z_scale, xy_scale, outputZScale,use_CLAHE, norm_window,saveDiffused, gradient_output_dir)
 % runFrameInverse(thisFileImName, inputDir, analysisDir, scalingxy);
 % this function takes a 3D stack and makes a 3D image of the image
 % gradients (after anistorpic smoothing) that is inversed and provides the
@@ -17,28 +17,28 @@ function CreateCost_Single_Layer(thisFileImName, inputDir, analysisDir,maskDir, 
 %% Resize image, perform close operation, and anisotropic diffusion.
 % parameters used
 umdiskRadius = 25; % the disk radius in microns that is used for the close operation used to make the labeled regions within the sheet more continuous
+desired_scale=3;% Desired distance in um between pixels in resized image.
 ds_scale = 4 ; % Distance in um between pixels in resized image.
-diskRadius = round(umdiskRadius/ds_scale);
+diskRadius = round(umdiskRadius/desired_scale);
 % diskRadius = 5;
 numberOfIterations = 5 ; % this is the number of iterations used for the anisotropic diffusion
-
 %read original 3D stack
+cd(inputDir);
 try
-    image3D = read3Dstack ([thisFileImName,'.tif'],inputDir);
+    %image3D = read3Dstack ([thisFileImName,'.tif'],inputDir);
+    %t=Tiff([thisFileImName,'.tif'], 'r');
+%     
+%     image3D  = read(t);
+    image3D = tiffreadVolume([thisFileImName,'.tif']);
 catch
-    image3D = read3Dstack ([thisFileImName,'.tiff'],inputDir);
+    image3D = tiffreadVolume([thisFileImName,'.tiff']);
 end
 
-% try
-%     cd (maskDir); thisMask =importdata([thisFileImName,'.tif']);
-% catch
-%     cd (maskDir); thisMask =importdata([thisFileImName,'.tiff']);
-% end
 
 % reduce sampling in x-y to match z axis
-image3D_RS = imresize(image3D,(xy_scale/z_scale));
+image3D_DS = imresize3(image3D,(xy_scale/desired_scale));
 % rescale to create 3d image with constant scale in um.
-image3D_DS = imresize(image3D_RS,1/(ds_scale/z_scale));
+%image3D_DS = imresize(image3D_RS,1/(ds_scale/z_scale));
 % define a disk with radius and preform imclose (dilate+erode) to close
 % holes within the sheet
 se = strel('disk',diskRadius);
@@ -55,10 +55,10 @@ diffusedImage = imclose(diffusedImage, se);
 % save the diffused image
 
 if saveDiffused == 1
-    
+
     cd(analysisDir)
     cd('Diffused')
-    
+
     d_first_frame = diffusedImage(:,:,1);
     d_ImageName = strcat('d_',thisFileImName,'.tiff');
     imwrite(d_first_frame,d_ImageName,'tiff');
@@ -66,14 +66,14 @@ if saveDiffused == 1
         d_next_frame = diffusedImage(:,:,i);
         imwrite(d_next_frame,d_ImageName,'WriteMode','append');
     end
-    
+
 end
 %%
 % now take the smoothed image and erode to obtain a thinner layer, from
 % which an offset can be taken for separating the fibre and cell cortex
 % signals.
-se3d = strel('disk',diskRadius/3);
-Gmag = double(imerode(diffusedImage,se3d)); 
+se3d = strel('disk',round(diskRadius/3));
+Gmag = double(imerode(diffusedImage,se3d));
 
 %% normalize gradient intensity using "adapthisteq" (CLAHE filter) and save gradient images
 % adapthisteq parameters for CLAHE analysis of incoming image
@@ -95,14 +95,14 @@ if use_CLAHE ==1
     for i=1:size(Gmag_uint16,3),
         GmagEq(:,:,i)= adapthisteq(Gmag_uint16(:,:,i), 'NumTiles', NumTiles, 'Distribution',Distribution,'Alpha',0.4, 'ClipLimit', 0.01); % Alpha and ClipLimit are taken at defualt values
     end
-else 
+else
     GmagEq = Gmag_uint16;
 end
 %% Invert the image
 DS_GmagInv=imcomplement(GmagEq); % invert the image
 %%
 % save the downsampled original image and gradient image
-cd(analysisDir)
+%cd(analysisDir)
 % save the downsampled original image
 % cd('DS_Originals')
 % first_frame = image3D_RS(:,:,1);
@@ -125,8 +125,6 @@ cd(analysisDir)
 %%
 % save the gradient image in the original resolution in xy and  using interpolation
 % cd ..;
-mkdir('Gradient_1Layer')
-cd('Gradient_1Layer')
 % resample image back to original size
 V=double(DS_GmagInv);
 [X1,Y1,Z1] = size(V);
@@ -135,7 +133,7 @@ V=double(DS_GmagInv);
 [X,Y,Z] = meshgrid(0:(Y1-1),0:(X1-1),0:(Z1-1));
 x_res = (X1-1)/(size(image3D,1)-1);
 y_res = (Y1-1)/(size(image3D,2)-1);
-z_res = 1/outputZScale;
+z_res = (Z1-1)/(size(image3D,3)-1);
 
 [Xq,Yq,Zq] = meshgrid(0:y_res:(Y1-1),0:x_res:(X1-1),0:z_res:(Z1-1));
 
@@ -144,14 +142,14 @@ Vq = interp3(X,Y,Z,V,Xq,Yq,Zq);
 % normalize Vq by its maximum- we might want to normalize in another way
 Vq_uint16= uint16(Vq/max(Vq(:))/2*65535);
 
- first_frame = Vq_uint16(:,:,1);
-%  first_frame(thisMask==0)= NaN ;
- 
- Grad_ImageName = strcat('Grad',thisFileImName,'.tiff');
- imwrite(first_frame,Grad_ImageName,'tiff');
-   for i = 2:size(Vq_uint16,3)
-         next_frame = Vq_uint16(:,:,i);    
-         next_frame(thisMask==0)= NaN ;
-         imwrite(next_frame,Grad_ImageName,'WriteMode','append');
-   end
+first_frame = Vq_uint16(:,:,1);
+path=fullfile(analysisDir, gradient_output_dir);
+
+grad_image_name = strcat('Grad',thisFileImName,'.tiff');
+file_name=fullfile(path, grad_image_name);
+imwrite(first_frame,file_name,'tiff');
+for i = 2:size(Vq_uint16,3)
+    next_frame = Vq_uint16(:,:,i);
+    imwrite(next_frame,file_name,'WriteMode','append');
+end
 end
