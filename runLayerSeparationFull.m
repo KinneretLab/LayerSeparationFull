@@ -1,24 +1,30 @@
 % code directory
-addpath(genpath('\\phhydra\phhydraB\Analysis\users\Yael\Matlab_Code\')); %Path for all code
+clear all;
+addpath(genpath('\\phhydra\phhydraB\Analysis\users\Yonit\MatlabCodes\GroupCodes\')); %Path for all code
 warning('off', 'MATLAB:MKDIR:DirectoryExists');% this supresses warning of existing directory
 
 %% Define directories of original images to run over folders and create cost images (original images should be 3D image stacks saved as separate timepoints).
 
 %% Define mainDirList
 %% Define mainDirList
-topMainDir='\\phhydra\phhydraB\SD2\2023\Yael\2023_06\2023_06_12\TIFF_Files\'; % main folder of original files for layer separation
+topMainDir='\\phhydra\phhydraB\SD2\2021\Yonit\2021_05\2021_05_06\TIFF_Files\'; % main folder of original files for layer separation
 
 mainDirList= { ... % enter in the following line all the  movie dirs for cost calculation
 
-'Pos_6\C0\',...
+
+'Pos_2\C1\',...
+'Pos_3\C1\',...
+%'Pos_7\C1\',...
 
 };
 for i=1:length(mainDirList),mainInDirList{i}=[topMainDir,mainDirList{i}];end
 
-topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yael\Movie_Analysis\2023_06_12'; % main folder for layer separation results
+topAnalysisDir='\\phhydra\phhydraB\Analysis\users\Yonit\Movie_Analysis\Labeled_cells\'; % main folder for layer separation results
 mainAnalysisDirList= { ... % enter in the following line all the output dirs for cost calculation.
 
-'\2023_06_12_pos6\', ...
+'\2021_05_06_pos2_top\', ...
+'\2021_05_06_pos3_top\', ...
+%'\2021_05_06_pos7_top\', ...
 
 };
 for i=1:length(mainAnalysisDirList),AnalysisDirList{i}=[topAnalysisDir,mainAnalysisDirList{i}];end
@@ -35,7 +41,7 @@ numPar = 6;
 %% Parameters for creating cost image
 % Calibration for z and xy of image stacks:
 z_scale = 3; % um/pixel
-xy_scale = 0.3145; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
+xy_scale = 1.04; % um/pixel for 10x lens with 1x magnification, 0.99 for 10x lens with 1.6x magnification, 0.65 for 20x lens with 1x magnification, 0.57 for lightsheet
 outputZScale = 1; % Default: 1, can change if you want to downsample.
 use_CLAHE = 1;  % Default: 1, set to 0 if don't want to use CLAHE to normalise gradients.
 norm_window = 4; % Default: 4. norm_window*blocksigma is the length scale for normalisation of gradient using CLAHE.
@@ -59,7 +65,7 @@ max = min+(round(interval*rescalez/z_scale)); % Calculate maximum distance and c
 extrapolate = 1;
 
 %% Parameters for surface projections
-offset = [-7:3]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
+offset = [-7:7]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
 CLAHE = 0; % Set to 1 if want to normalise intensity in images using CLAHE. DEFAULT IS 0.
 zLimits = {[],[]}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
 % Leave empty if you don't want to specify any limits.
@@ -69,24 +75,11 @@ zLimits = {[],[]}; % If there is a disturbing feature in the stack that you woul
 % looked at them to choose the relevant planes. If not run in batch mode, code will ask you for your
 % input as to whether to run this section:
 
-planesCortices = [7:8]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
-planesFibres = [6:8]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
-layerCortices = 1; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
-layerFibres = 0; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
+planesCortices = [9:12]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
+planesFibres = [8:12]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
+layerCortices = 0; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
+layerFibres = 1; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
 
-%% Parameters for Adjust Images
-inputFolderNameFibers = 'Orientation_Analysis\Raw Images';
-outputFolderNameFibers = 'Orientation_Analysis\AdjustedImages';
-
-inputFolderNameCells = 'Cells\Raw Cortices';
-outputFolderNameCells = 'Cells\Adjusted_cortices';
-
-saveFormat = 2; % Choose 1 for PNG, 2 for TIFF
-sigma = 0; % Kernel size for gaussian blur, set to zero if no blur needed.
-saveStretched = 0; % Set to 1 if you want to save the images separately with stretched histograms (relevant mostly for images from SD2).
-%% Parameters for combining video
-CombineParameter=1; %put 0 if you dont want to combine
-FinalName ='Cells_and_Fibers'; %define the name of the combined video
 
 %% Run over all folders in mainDirList and create cost images, which are saved in matching subfolders in topAnalysisDir.
 for i=1:length(mainDirList)
@@ -273,32 +266,3 @@ for i=1:length(mainDirList)
     mkdir(corticesImDir); mkdir(fibresImDir);
     createSinglePlaneProj(matlabProjDir0,matlabProjDir1,layerCortices,layerFibres,planesCortices,planesFibres,corticesImDir,fibresImDir)
 end
-%% Run AdjustImages
-for j=1:length(AnalysisDirList)
-    
-    inputDirFibers=[AnalysisDirList{j},inputFolderNameFibers];
-    outputDirFibers=[AnalysisDirList{j},outputFolderNameFibers];
-    mkdir(outputDirFibers);
-    
-    inputDirCells=[AnalysisDirList{j},inputFolderNameCells];
-    outputDirCells=[AnalysisDirList{j},outputFolderNameCells];
-    mkdir(outputDirCells);
-  
-    cd (inputDirCells);
-    tpoints = dir('*.tif*');    
-    
-    parfor i = 1:length(tpoints)
-
-        name_end = find(tpoints(i).name == '.');
-        thisFileImName = [tpoints(i).name(1:(name_end-1))]
-        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
-        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
-
-
-    end
-    
-    if CombineParameter==1
-     combinePanels(outputDirCells, outputDirFibers, AnalysisDirList{j}, FinalName);
-    end
-end
-
