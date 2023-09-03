@@ -144,13 +144,13 @@ Vq = interp3(X,Y,Z,V,Xq,Yq,Zq);
 Vq_uint16= uint16(Vq/max(Vq(:))/2*65535);
 
  first_frame = Vq_uint16(:,:,1);
- first_frame(thisMask==0)= NaN ;
+ first_frame(thisMask==0)= 65535 ;
  
  Grad_ImageName = strcat('Grad',thisFileImName,'.tiff');
  imwrite(first_frame,Grad_ImageName,'tiff');
    for i = 2:size(Vq_uint16,3)
          next_frame = Vq_uint16(:,:,i);    
-         next_frame(thisMask==0)= NaN ;
+         next_frame(thisMask==0)= 65535 ;
          imwrite(next_frame,Grad_ImageName,'WriteMode','append');
    end
 end
