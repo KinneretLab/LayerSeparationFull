@@ -266,3 +266,32 @@ for i=1:length(mainDirList)
     mkdir(corticesImDir); mkdir(fibresImDir);
     createSinglePlaneProj(matlabProjDir0,matlabProjDir1,layerCortices,layerFibres,planesCortices,planesFibres,corticesImDir,fibresImDir)
 end
+%% Run AdjustImages
+for j=1:length(AnalysisDirList)
+    
+    inputDirFibers=[AnalysisDirList{j},inputFolderNameFibers];
+    outputDirFibers=[AnalysisDirList{j},outputFolderNameFibers];
+    mkdir(outputDirFibers);
+    
+    inputDirCells=[AnalysisDirList{j},inputFolderNameCells];
+    outputDirCells=[AnalysisDirList{j},outputFolderNameCells];
+    mkdir(outputDirCells);
+  
+    cd (inputDirCells);
+    tpoints = dir('*.tif*');    
+    
+    parfor i = 1:length(tpoints)
+
+        name_end = find(tpoints(i).name == '.');
+        thisFileImName = [tpoints(i).name(1:(name_end-1))]
+        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
+        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
+
+
+    end
+    
+    if CombineParameter==1
+     combinePanels(outputDirCells, outputDirFibers, AnalysisDirList{j}, FinalName);
+    end
+end
+
