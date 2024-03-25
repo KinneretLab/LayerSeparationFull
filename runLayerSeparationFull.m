@@ -79,6 +79,18 @@ planesCortices = [9:12]; % Planes out of matlab projection stack that will be us
 planesFibres = [8:12]; % Planes out of matlab projection stack that will be used to create final 2D image (max projection of these planes).
 layerCortices = 0; % Numbering of cortices layer by layer separation algorithm. Leave empty if not relevant.
 layerFibres = 1; % Numbering of cortices layer by layer separation algorithm.  Leave empty if not relevant.
+%% Parameters for Adjust Images
+inputFolderNameFibers = 'Orientation_Analysis\Raw Images';
+outputFolderNameFibers = 'Orientation_Analysis\AdjustedImages';
+
+inputFolderNameCells = 'Cells\Raw Cortices';
+outputFolderNameCells = 'Cells\Adjusted_cortices';
+saveFormat = 2; % Choose 1 for PNG, 2 for TIFF
+sigma = 0; % Kernel size for gaussian blur, set to zero if no blur needed.
+saveStretched = 0; % Set to 1 if you want to save the images separately with stretched histograms (relevant mostly for images from SD2).
+%% Parameters for combining video
+CombineParameter=0; %put 0 if you dont want to combine
+FinalName ='Cells_and_Fibers'; %define the name of the combined video
 
 
 %% Run over all folders in mainDirList and create cost images, which are saved in matching subfolders in topAnalysisDir.
