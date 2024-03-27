@@ -1,4 +1,4 @@
-function applySmoothMask(thisFileImName, maskDir, rawImageDir, outputDir)
+function applySmoothMask(thisFileImName, maskDir, rawImageDir, outputDir, sigmaInMicron, xyCalib)
 %APPLYSMOOTHMASK Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -23,15 +23,14 @@ function applySmoothMask(thisFileImName, maskDir, rawImageDir, outputDir)
             thisRawImage =[] ;disp (['no raw image found ',thisFileImName]); % if no image is found
         end  
     end
-    
-    maskDup = repmat(thisMask,1,1,size(surfaceProj,3));
-    blurredMask = imgaussfilt(maskDup,5);
+    sigmaInPixel = sigmaInMicron/ xyCalib;
+    blurredMask = imgaussfilt(thisMask,sigmaInPixel);
     blurredMask = im2double(blurredMask);
     thisRawImageDouble= im2double(thisRawImage);
     maskedImage = thisRawImageDouble.* blurredMask;
     rawImageWBlurredMask = im2uint16(maskedImage);
     dest= fullfile(outputDir, [thisFileImName,'.tiff']);
-    imsave(rawImageWBlurredMask, dest);
+    imwrite(rawImageWBlurredMask, dest);
     
 
 
