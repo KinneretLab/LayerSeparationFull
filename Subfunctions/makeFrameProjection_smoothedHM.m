@@ -52,7 +52,6 @@ image3DPadded (:,:,(1+minPadZPlane):(maxZ+minPadZPlane)) = image3D; % put image 
 sizeX=size (image3DPadded,1);sizeY=size (image3DPadded,2);sizeZ=size (image3DPadded,3);
 
 z_sigma = 0.5; % Variance of gaussian for determining intensity for off-grid z value.
-
 % now after padding we perform the projection in each pixel
 for j = 1:length(offset),
     newZ= minPadZPlane+heightZ+rOffset(j)-1; % this is the z value at each position for offset j and plane k for the projection
@@ -69,8 +68,6 @@ for j = 1:length(offset),
     thisSurfaceProj = sum(weighed3dIm,3);
     surfaceProj(:,:,j)=uint16(thisSurfaceProj);     % this is the projected image with offset j
 end
-
-surfaceProj(repmat(thisMask,1,1,size(surfaceProj,3))==0) = NaN;
 
 %% normalize image intensity using "adapthisteq" (CLAHE filter)
 if CLAHE == 1

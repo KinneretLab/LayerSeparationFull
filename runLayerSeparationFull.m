@@ -65,7 +65,7 @@ max = min+(round(interval*rescalez/z_scale)); % Calculate maximum distance and c
 extrapolate = 1;
 
 %% Parameters for surface projections
-offset = [-7:7]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
+offset = [-7:3]; % Range of offest from the detected surface to use for projection images. Test a few and choose what range you need.
 CLAHE = 0; % Set to 1 if want to normalise intensity in images using CLAHE. DEFAULT IS 0.
 zLimits = {[],[]}; % If there is a disturbing feature in the stack that you would like to leave out of projections, set a limit to what slices can be used from the z-stack.
 % Leave empty if you don't want to specify any limits.
@@ -85,8 +85,13 @@ outputFolderNameFibers = 'Orientation_Analysis\AdjustedImages';
 
 inputFolderNameCells = 'Cells\Raw Cortices';
 outputFolderNameCells = 'Cells\Adjusted_cortices';
+
+outputFolderNameRawFibersWMask = [inputFolderNameFibers, ' Mask'];
+outputFolderNameRawCellsWMask = [inputFolderNameCells, ' Mask'];
+
 saveFormat = 2; % Choose 1 for PNG, 2 for TIFF
 sigma = 0; % Kernel size for gaussian blur, set to zero if no blur needed.
+sigmaForMaskSmoothingInMicron = 2.6;
 saveStretched = 0; % Set to 1 if you want to save the images separately with stretched histograms (relevant mostly for images from SD2).
 %% Parameters for combining video
 CombineParameter=0; %put 0 if you dont want to combine
@@ -280,12 +285,17 @@ for i=1:length(mainDirList)
 end
 %% Run AdjustImages
 for j=1:length(AnalysisDirList)
+    maskDir = [AnalysisDirList{i},'\Display\Masks\'];
     
     inputDirFibers=[AnalysisDirList{j},inputFolderNameFibers];
+    outputDirRawFibersWMask=[AnalysisDirList{j},outputFolderNameRawFibersWMask];
+    mkdir(outputDirRawFibersWMask);
     outputDirFibers=[AnalysisDirList{j},outputFolderNameFibers];
     mkdir(outputDirFibers);
     
     inputDirCells=[AnalysisDirList{j},inputFolderNameCells];
+    outputDirRawCellsWMask=[AnalysisDirList{j},outputFolderNameRawCellsWMask];
+    mkdir(outputDirRawCellsWMask);
     outputDirCells=[AnalysisDirList{j},outputFolderNameCells];
     mkdir(outputDirCells);
   
@@ -296,8 +306,11 @@ for j=1:length(AnalysisDirList)
 
         name_end = find(tpoints(i).name == '.');
         thisFileImName = [tpoints(i).name(1:(name_end-1))]
-        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
-        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
+        applySmoothMask(thisFileImName, maskDir, inputDirFibers, outputDirRawFibersWMask, sigmaForMaskSmoothingInMicron, xy_scale);
+        applySmoothMask(thisFileImName, maskDir, inputDirCells, outputDirRawCellsWMask, sigmaForMaskSmoothingInMicron, xy_scale);
+
+        adjustImages(thisFileImName, outputDirRawFibersWMask, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
+        adjustImages(thisFileImName, outputDirRawCellsWMask, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
     end
     
     if CombineParameter==1
@@ -305,14 +318,15 @@ for j=1:length(AnalysisDirList)
     end
 end
 %% Combine after adjust
-for j=1:length(AnalysisDirList)
-    
-    outputDirFibers=[AnalysisDirList{j},outputFolderNameFibers];
-    
-    outputDirCells=[AnalysisDirList{j},outputFolderNameCells];
-    
-    if CombineParameter==1
-     combinePanels(outputDirCells, outputDirFibers, AnalysisDirList{j}, FinalName);
+if CombineParameter==1
+    for j=1:length(AnalysisDirList)
+        
+        outputDirFibers=[AnalysisDirList{j},outputFolderNameFibers];
+        
+        outputDirCells=[AnalysisDirList{j},outputFolderNameCells];
+        
+        if CombineParameter==1
+            combinePanels(outputDirCells, outputDirFibers, AnalysisDirList{j}, FinalName);
+        end
     end
 end
-
