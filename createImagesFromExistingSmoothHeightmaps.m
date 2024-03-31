@@ -80,9 +80,6 @@ outputFolderNameFibers = 'Orientation_Analysis\AdjustedImages';
 inputFolderNameCells = 'Cells\Raw Cortices';
 outputFolderNameCells = 'Cells\Adjusted_cortices';
 
-outputFolderNameRawFibersWMask = [inputFolderNameFibers, ' Mask'];
-outputFolderNameRawCellsWMask = [inputFolderNameCells, ' Mask'];
-
 
 saveFormat = 2; % Choose 1 for PNG, 2 for TIFF
 sigma = 0; % Kernel size for gaussian blur, set to zero if no blur needed.
@@ -214,14 +211,10 @@ for j=1:length(AnalysisDirList)
     maskDir = [AnalysisDirList{i},'\Display\Masks\'];
     
     inputDirFibers=[AnalysisDirList{j},inputFolderNameFibers];
-    outputDirRawFibersWMask=[AnalysisDirList{j},outputFolderNameRawFibersWMask];
-    mkdir(outputDirRawFibersWMask);
     outputDirFibers=[AnalysisDirList{j},outputFolderNameFibers];
     mkdir(outputDirFibers);
     
     inputDirCells=[AnalysisDirList{j},inputFolderNameCells];
-    outputDirRawCellsWMask=[AnalysisDirList{j},outputFolderNameRawCellsWMask];
-    mkdir(outputDirRawCellsWMask);
     outputDirCells=[AnalysisDirList{j},outputFolderNameCells];
     mkdir(outputDirCells);
   
@@ -232,11 +225,11 @@ for j=1:length(AnalysisDirList)
 
         name_end = find(tpoints(i).name == '.');
         thisFileImName = [tpoints(i).name(1:(name_end-1))]
-        applySmoothMask(thisFileImName, maskDir, inputDirFibers, outputDirRawFibersWMask, sigmaForMaskSmoothingInMicron, xy_scale);
-        applySmoothMask(thisFileImName, maskDir, inputDirCells, outputDirRawCellsWMask, sigmaForMaskSmoothingInMicron, xy_scale);
+        applySmoothMask(thisFileImName, maskDir, inputDirFibers, inputDirFibers, sigmaForMaskSmoothingInMicron, xy_scale);
+        applySmoothMask(thisFileImName, maskDir, inputDirCells, inputDirCells, sigmaForMaskSmoothingInMicron, xy_scale);
 
-        adjustImages(thisFileImName, outputDirRawFibersWMask, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
-        adjustImages(thisFileImName, outputDirRawCellsWMask, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
+        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
+        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
 
 
     end
