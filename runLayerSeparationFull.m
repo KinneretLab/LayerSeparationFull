@@ -90,6 +90,9 @@ saveFormat = 2; % Choose 1 for PNG, 2 for TIFF
 sigma = 0; % Kernel size for gaussian blur, set to zero if no blur needed.
 sigmaForMaskSmoothingInMicron = 2.6;
 saveStretched = 0; % Set to 1 if you want to save the images separately with stretched histograms (relevant mostly for images from SD2).
+toNormalize = 1; % Normalize  histogram between 0 and 2^16-1 before CLAHE (suitable for older spinning disk) if signal is not too weak.
+multiplicationFactor = 0; % For images from the up&under system, multiply by a constant factor. Default is 10. Set to 0 if not relevant.
+
 %% Parameters for combining video
 CombineParameter=0; %put 0 if you dont want to combine
 FinalName ='Cells_and_Fibers'; %define the name of the combined video
@@ -323,8 +326,8 @@ for j=1:length(AnalysisDirList)
         applySmoothMask(thisFileImName, maskDir, inputDirFibers, inputDirFibers, sigmaForMaskSmoothingInMicron, xy_scale);
         applySmoothMask(thisFileImName, maskDir, inputDirCells, inputDirCells, sigmaForMaskSmoothingInMicron, xy_scale);
 
-        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
-        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
+        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched, toNormalize,multiplicationFactor);
+        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched, toNormalize,multiplicationFactor);
     end
     
     if CombineParameter==1

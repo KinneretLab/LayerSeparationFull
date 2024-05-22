@@ -85,10 +85,15 @@ saveFormat = 2; % Choose 1 for PNG, 2 for TIFF
 sigma = 0; % Kernel size for gaussian blur, set to zero if no blur needed.
 sigmaForMaskSmoothingInMicron = 2.6;
 saveStretched = 0; % Set to 1 if you want to save the images separately with stretched histograms (relevant mostly for images from SD2).
+toNormalize = 1; % Normalize  histogram between 0 and 2^16-1 before CLAHE (suitable for older spinning disk) if signal is not too weak.
+multiplicationFactor = 0; % For images from the up&under system, multiply by a constant factor. Default is 10. Set to 0 if not relevant.
+
 %% Parameters for combining video
 CombineParameter=0; %put 0 if you dont want to combine
 FinalName ='Cells_and_Fibers'; %define the name of the combined video
-
+%% Frames to the layer seperation on
+framesList = cell(1,length(mainAnalysisDirList));
+% framesList = {336:371}; % Enter specific frame ranges in this format if you
 
 %% Run over all folders in mainDirList and create cost images, which are saved in matching subfolders in topAnalysisDir.
 for i=1:length(mainDirList)
@@ -143,27 +148,34 @@ for i=1:length(mainDirList)
     cd (maskDir);
     tpoints = dir('*tif*');
     
+    poolobj = gcp('nocreate');
+    delete(poolobj);
+    parpool('local', numPar);
+    
     if numLayers == 2
-
-        for j = 1:length(tpoints)
-
+        
+        parfor j = 1:length(tpoints)
+            
             name_end = find(tpoints(j).name == '.');
             thisFileImName = [tpoints(j).name(1:(name_end-1))]
-%             % postprocessing after layer separation - matlab code for making projected images at given z from height maps
-%             % ("Layer separation after" - first automated step that creates many planes)
-%             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
-%             % Run on first layer
-
-
-%             smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale,extrapolate,0);
-            smoothHMFile = [smoothHeightDir0, thisFileImName, '.mat'];
-            smoothHM =  load(smoothHMFile).smoothHM;
-            makeFrameProjection_smoothedHM(thisFileImName, inputDir, maskDir,matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
-%             % Run on second layer
-%             smoothHM =  smoothHeightMap(thisFileImName, maskDir, heightDir1,smoothHeightDir1,fvDir1, xy_scale, z_scale,extrapolate,1);
-            smoothHMFile = [smoothHeightDir1, thisFileImName, '.mat'];
-            smoothHM =  load(smoothHMFile).smoothHM;
-            makeFrameProjection_smoothedHM(thisFileImName, inputDir,maskDir, matlabProjDir1,xy_scale, offset,smoothHM,CLAHE, zLimits );
+            if isInFramesList(thisFileImName, framesList{i})
+                
+                %             % postprocessing after layer separation - matlab code for making projected images at given z from height maps
+                %             % ("Layer separation after" - first automated step that creates many planes)
+                %             % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
+                %             % Run on first layer
+                
+                
+                %             smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale,extrapolate,0);
+                smoothHMFile = [smoothHeightDir0, thisFileImName, '.mat'];
+                smoothHM =  load(smoothHMFile).smoothHM;
+                makeFrameProjection_smoothedHM(thisFileImName, inputDir, maskDir,matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
+                %             % Run on second layer
+                %             smoothHM =  smoothHeightMap(thisFileImName, maskDir, heightDir1,smoothHeightDir1,fvDir1, xy_scale, z_scale,extrapolate,1);
+                smoothHMFile = [smoothHeightDir1, thisFileImName, '.mat'];
+                smoothHM =  load(smoothHMFile).smoothHM;
+                makeFrameProjection_smoothedHM(thisFileImName, inputDir,maskDir, matlabProjDir1,xy_scale, offset,smoothHM,CLAHE, zLimits );
+            end
         end
 
     elseif numLayers == 1
@@ -172,12 +184,15 @@ for i=1:length(mainDirList)
 
             name_end = find(tpoints(j).name == '.');
             thisFileImName = [tpoints(j).name(1:(name_end-1))]
-            % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
-            % Run on first layer
-%             smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale,extrapolate,0);
-            smoothHMFile = [smoothHeightDir0, thisFileImName, '.mat'];
-            smoothHM =  load(smoothHMFile).smoothHM;
-            makeFrameProjection_smoothedHM(thisFileImName,inputDir, maskDir, matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
+            if isInFramesList(thisFileImName, framesList{i})
+                
+                % NOW RUN FUNCTION TO CREATE SURFACE PROJECTIONS:
+                % Run on first layer
+                %             smoothHM = smoothHeightMap(thisFileImName, maskDir, heightDir0,smoothHeightDir0,fvDir0, xy_scale, z_scale,extrapolate,0);
+                smoothHMFile = [smoothHeightDir0, thisFileImName, '.mat'];
+                smoothHM =  load(smoothHMFile).smoothHM;
+                makeFrameProjection_smoothedHM(thisFileImName,inputDir, maskDir, matlabProjDir0,xy_scale, offset,smoothHM,CLAHE, zLimits );
+            end
         end
     end
 
@@ -219,17 +234,21 @@ for j=1:length(AnalysisDirList)
     mkdir(outputDirCells);
   
     cd (inputDirCells);
-    tpoints = dir('*.tif*');    
+    tpoints = dir('*.tif*');  
+
+    poolobj = gcp('nocreate');
+    delete(poolobj);
+    parpool('local', numPar);
     
-    for i = 1:length(tpoints)
+    parfor i = 1:length(tpoints)
 
         name_end = find(tpoints(i).name == '.');
         thisFileImName = [tpoints(i).name(1:(name_end-1))]
         applySmoothMask(thisFileImName, maskDir, inputDirFibers, inputDirFibers, sigmaForMaskSmoothingInMicron, xy_scale);
         applySmoothMask(thisFileImName, maskDir, inputDirCells, inputDirCells, sigmaForMaskSmoothingInMicron, xy_scale);
 
-        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched);
-        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched);
+        adjustImages(thisFileImName, inputDirFibers, outputDirFibers, xy_scale,saveFormat,sigma,saveStretched, toNormalize,multiplicationFactor);
+        adjustImages(thisFileImName, inputDirCells, outputDirCells, xy_scale,saveFormat,sigma,saveStretched, toNormalize,multiplicationFactor);
 
 
     end
@@ -249,5 +268,19 @@ if CombineParameter==1
         if CombineParameter==1
             combinePanels(outputDirCells, outputDirFibers, AnalysisDirList{j}, FinalName);
         end
+    end
+end
+%% Utility Functions
+function result=isInFramesList(thisFileImName, framesForDir)
+    if isempty(framesForDir)
+        result=true;
+        return;
+    end
+    parts = strsplit(thisFileImName, '_');
+    frameNumber=str2double(parts{end});
+    if ismember(frameNumber, framesForDir)
+        result=true;
+    else
+        result=false;
     end
 end
